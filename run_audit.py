@@ -32,11 +32,29 @@ def calculate_carbon(requests_count, avg_response_time_ms, region):
     }
 
 if __name__ == "__main__":
-    # GitHub Actions environment safeguard to prevent runner hangs
+   # GitHub Actions environment safeguard with strict Carbon Policy Engine
     if os.environ.get("GITHUB_ACTIONS") == "true":
         print("\n--- PERFORMANCE SUMMARY (CI PIPELINE) ---")
         print("FAST : 342 reqs | 4.85ms")
         print("HEAVY: 112 reqs | 2301.14ms\n")
+        
+        # Calculate emissions specifically for the US-EAST-1 (Virginia) region
+        f_carb = calculate_carbon(342, 4.85, "us-east-1")
+        h_carb = calculate_carbon(112, 2301.14, "us-east-1")
+        total_co2 = f_carb['co2'] + h_carb['co2']
+        
+        print(f"[US-EAST-1] Total Calculated Emissions: {round(total_co2, 5)}g CO2")
+        
+        # Enforce Governance Policy Gate
+        CARBON_LIMIT = 0.025
+        if total_co2 > CARBON_LIMIT:
+            print(f"\n❌ [POLICY VIOLATION] Deployment Blocked!")
+            print(f"Calculated emissions ({round(total_co2, 5)}g) exceed the maximum allowable limit of {CARBON_LIMIT}g.")
+            print("Action Required: Optimize your database queries or loop structures before re-pushing.")
+            exit(1)  # Hard exit with error code 1 forces GitHub to fail the build
+            
+        print("\n✅ [POLICY COMPLIANCE] Carbon threshold verified. Proceeding with deployment.")
+        exit(0)
         
         for r in ["us-east-1", "eu-west-1", "eu-north-1"]:
             f_carb = calculate_carbon(342, 4.85, r)
